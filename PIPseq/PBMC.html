@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PBMC Prep — PIPseq Biopanning</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --panel:#fff; --ink:#12232e; --muted:#5b7180;
+    --line:#dce4ea; --teal:#0f7b8a; --teal-d:#0a5c68; --teal-soft:#e5f2f4;
+    --amber:#b8770a; --amber-soft:#fbf1dc; --green:#1a7d54; --green-soft:#e2f3ea;
+    --red:#b3322c; --red-soft:#fbeae9;
+    --shadow:0 1px 3px rgba(18,35,46,.08),0 6px 20px rgba(18,35,46,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5;font-size:15px}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+  a{color:var(--teal-d)}
+
+  header.top{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;padding:24px 0 20px}
+  header.top .wrap{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;justify-content:space-between}
+  header.top h1{margin:0;font-size:24px;letter-spacing:.2px}
+  header.top .sub{opacity:.92;font-size:13.5px;margin-top:4px;max-width:620px}
+  .tools{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;
+    padding:8px 12px;border-radius:9px;font-size:13px;cursor:pointer;font-weight:600;transition:.15s}
+  .btn:hover{background:rgba(255,255,255,.24)}
+  .btn.solid{background:#fff;color:var(--teal-d);border-color:#fff}
+
+  section.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:20px 22px;margin:18px 0}
+  h2{margin:0 0 4px;font-size:19px;color:var(--teal-d)}
+  h2 .n{display:inline-block;min-width:26px;color:var(--muted);font-weight:600}
+  h3{margin:18px 0 6px;font-size:14.5px;color:var(--teal-d);text-transform:uppercase;letter-spacing:.5px}
+  .lede{color:var(--muted);font-size:13.5px;margin:0 0 10px}
+
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--teal-soft);color:var(--teal-d);font-size:12.5px;font-weight:700}
+  tbody tr:hover{background:#fafcfc}
+  code{background:#eef3f5;padding:1px 5px;border-radius:5px;font-size:12.5px}
+
+  ol.steps{margin:0;padding-left:0;list-style:none;counter-reset:s}
+  ol.steps>li{counter-increment:s;position:relative;padding:11px 0 11px 42px;border-bottom:1px solid var(--line)}
+  ol.steps>li:last-child{border-bottom:0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:11px;width:26px;height:26px;
+    border-radius:50%;background:var(--teal-soft);color:var(--teal-d);font-weight:700;font-size:12.5px;
+    display:flex;align-items:center;justify-content:center}
+  ol.steps ul{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:13.5px}
+  ol.steps .chk{position:absolute;right:0;top:12px;width:17px;height:17px;accent-color:var(--teal);cursor:pointer}
+  ol.steps>li.done{opacity:.55}
+
+  .note{border-left:4px solid var(--teal);background:var(--teal-soft);border-radius:0 9px 9px 0;
+    padding:9px 13px;margin:10px 0;font-size:13px;color:#0a5c68}
+  .warn{border-left:4px solid var(--amber);background:var(--amber-soft);border-radius:0 9px 9px 0;
+    padding:9px 13px;margin:10px 0;font-size:13px;color:#6b530f}
+  .crit{border-left:4px solid var(--red);background:var(--red-soft);border-radius:0 9px 9px 0;
+    padding:9px 13px;margin:10px 0;font-size:13px;color:#8a2a25}
+
+  /* Collapsible figures — closed by default, click/tap to reveal */
+  details.figbox{margin:10px 0;border:1px solid var(--line);border-radius:12px;background:#fafcfc;overflow:hidden}
+  details.figbox>summary{list-style:none;cursor:pointer;padding:9px 13px;font-size:12.5px;font-weight:600;
+    color:var(--teal-d);background:var(--teal-soft);display:flex;align-items:center;gap:8px;
+    user-select:none;-webkit-tap-highlight-color:transparent}
+  details.figbox>summary::-webkit-details-marker{display:none}
+  details.figbox>summary::before{content:"";flex:none;width:0;height:0;border-left:6px solid currentColor;
+    border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;transition:transform .15s}
+  details.figbox[open]>summary::before{transform:rotate(90deg)}
+  details.figbox>summary:hover{background:#d8ebee}
+  details.figbox>summary:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
+  details.figbox .figure{margin:0;padding:12px;border-top:1px solid var(--line)}
+  details.figbox .figure img{display:block;margin:0 auto;max-width:100%;height:auto;border-radius:6px}
+  details.figbox figcaption{margin-top:6px;font-size:11.5px;color:var(--muted);text-align:center}
+
+  /* Lab note form */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px;margin:10px 0}
+  fieldset{border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin:14px 0}
+  legend{font-size:12px;font-weight:800;color:var(--teal-d);text-transform:uppercase;letter-spacing:.6px;padding:0 6px}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:3px}
+  input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{
+    width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;
+    font-family:inherit;color:var(--ink);background:#fff}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:-1px;border-color:var(--teal)}
+  textarea{min-height:66px;resize:vertical}
+  .lnbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .lnbtns button{border:1px solid var(--teal);background:var(--teal);color:#fff;padding:9px 14px;
+    border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .lnbtns button:hover{background:var(--teal-d)}
+  .lnbtns button.ghost{background:#fff;color:var(--teal-d)}
+  .lnbtns button.ghost:hover{background:var(--teal-soft)}
+  .lnbtns button.danger{background:#fff;color:var(--red);border-color:#e7bab7}
+  .toast{display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:13px;
+    background:var(--green-soft);color:var(--green);border:1px solid #bfe3d1}
+  .storewarn{display:none;margin:10px 0;padding:8px 12px;border-radius:8px;font-size:12.5px;
+    background:var(--amber-soft);color:#6b530f;border:1px solid #f0dca8}
+  td .mini{background:#fff;color:var(--red);border:1px solid #e7bab7;border-radius:6px;
+    font-size:11.5px;padding:3px 7px;cursor:pointer;font-weight:600}
+  .empty{color:var(--muted);font-size:13px;font-style:italic;padding:8px 0}
+
+  footer{color:var(--muted);font-size:12.5px;text-align:center;padding:26px 0 40px}
+
+  @media print{
+    body{background:#fff;font-size:11.5px}
+    header.top{background:none;color:var(--ink);border-bottom:2px solid var(--teal);padding:0 0 10px}
+    .tools,.lnbtns,.mini{display:none!important}
+    section.card{box-shadow:none;border:0;padding:0;margin:14px 0;break-inside:avoid}
+    details.figbox{break-inside:avoid}
+    input,select,textarea{border:0;border-bottom:1px solid #999;border-radius:0}
+    ol.steps>li{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>PBMC Prep — PIPseq Biopanning</h1>
+      <div class="sub">Thaw → biotinylate → pan against induced yeast library → magnetic capture → PIP load.
+        Target 10 × 10⁶ PBMC per run.</div>
+    </div>
+    <div class="tools">
+      <button class="btn" onclick="window.print()">Print / PDF</button>
+      <button class="btn solid" onclick="document.getElementById('labnote').scrollIntoView()">Lab note ↓</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ MATERIALS ============ -->
+<section class="card">
+  <h2><span class="n">1</span>Materials</h2>
+
+  <h3>Cells and library</h3>
+  <table>
+    <thead><tr><th>Item</th><th>Cat. # / source</th><th>Amount</th><th>Prep note</th></tr></thead>
+    <tbody>
+      <tr><td>Human PBMC, cryopreserved</td><td>ATCC <b>PCS-800-011</b></td><td>1 vial (12.5 M)</td>
+          <td>Record lot each run.</td></tr>
+      <tr><td>Induced yeast library</td><td>in-house</td><td>~1 × 10⁸</td>
+          <td><b>Thaw and induce 3–4 days before PIPseq.</b></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Media and buffers</h3>
+  <table>
+    <thead><tr><th>Buffer</th><th>Composition</th><th>Vol./run</th><th>Prep note</th></tr></thead>
+    <tbody>
+      <tr><td><b>Complete medium</b></td><td>RPMI-1640 + 10% FBS (or human AB serum)</td><td>25 mL</td>
+          <td>Warm to 37 °C before thaw. Pen/strep optional</td></tr>
+      <tr><td><b>PBS pH 8.0</b></td><td>PBS titrated with 0.1 N NaOH</td><td>10 mL</td>
+          <td><b>Do not exceed 8.2.</b> Amine-free — no BSA, no serum. You can also use pH 7.4 PBS, but it will less effective for the biotinylation.</td></tr>
+      <tr><td><b>Quench buffer</b></td><td><b>100 mM glycine in PBS</b> (alt: PBS + 1% BSA)</td><td>5 mL</td>
+          <td>Any primary amine works. Fresh, or ≤1 week at 4 °C</td></tr>
+      <tr><td><b>Binding / MACS buffer</b></td><td>PBS + 0.5–1% BSA </td><td>50 mL</td>
+          <td>Ice cold</td></tr>
+      <tr><td><b>CSB</b> (cell suspension buffer, PIP load)</td><td>PBS + 0.5% BSA, <b>RNase-free</b></td><td>10 mL</td>
+          <td>Provided by PIPseq kit</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Reagents</h3>
+  <table>
+    <thead><tr><th>Reagent</th><th>Cat. # / source</th><th>Working conc.</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Sulfo-NHS-biotin (EZ-Link)</td><td>Thermo <b>MSPP-A39257</b>, 1 mg/tube</td><td><b>0.5 mg/mL final</b></td>
+          <td><b>Dissolve immediately before use</b> — hydrolyzes in minutes. One tube = exactly one 10 M PBMC reaction (Step 11)</td></tr>
+      <tr><td>Dynabeads MyOne Streptavidin T1</td><td>Invitrogen <b>#65601</b></td><td>~1 µL per 10⁶ cells</td>
+          <td>10 mg/mL ≈ 7–12 × 10⁹ beads/mL. Pre-wash 2× in binding buffer</td></tr>
+      <tr><td>Trypan blue</td><td><i>lab stock</i></td><td>0.4%</td><td>10 µL cells + 10 µL trypan</td></tr>
+      <tr><td>DNase I <i>(optional)</i></td><td><i>need purchase</i></td><td>25 µg/mL</td><td>Add at thaw if aggregation recurs</td></tr>
+      <tr><td>Fc block <i>(optional)</i></td><td>BioLegend TruStain FcX</td><td>~5 µL per 10⁶ cells in 100 µL</td>
+          <td>Blocks FcR binders — see Step 13</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Consumables and equipment</h3>
+  <table>
+    <thead><tr><th>Item</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>15 mL conical tubes(#352097)</td><td>Polypropylene tube, safe for PBMC recovery</td></tr>
+      <tr><td>1.5 mL low-retention tubes</td><td>lab stock</td></tr>
+      <tr><td>40 µm cell strainer</td><td>Before counting, and again before PIP dilution</td></tr>
+      <tr><td>Hemocytometer(#MDH-2N1)</td><td>Counting cells and complexes</td></tr>
+      <tr><td>Magnetic stand</td><td>Capture step</td></tr>
+      <tr><td>rotator, 4 °C</td><td>Labeling and binding — <b>not</b> a vortex</td></tr>
+      <tr><td>37 °C water bath · 37 °C 5% CO₂ incubator · centrifuge · ice</td><td></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ PROTOCOL ============ -->
+<section class="card">
+  <h2><span class="n">2</span>Protocol</h2>
+  <p class="lede">I used <b>10 × 10⁶ PBMC</b> for PIPseq sample prep. Tick steps as you go — ticks persist in this browser.</p>
+
+  <ol class="steps" id="steps">
+    <li>Warm complete medium to 37 °C: RPMI-1640 + 10% FBS or human serum.</li>
+    <li>Remove PBMC vial from liquid nitrogen or −80 °C.</li>
+    <li>Thaw quickly in a 37 °C water bath until only a tiny ice crystal remains, usually 1–2 min.</li>
+    <li>Immediately move to the hood. Transfer cells gently into a 15 mL tube.</li>
+    <li>Add warm complete medium <b>slowly, dropwise at first</b>, while gently swirling.
+      <ul><li>1 mL thawed PBMC + 9 mL warm complete medium</li></ul></li>
+    <li>Spin: <b>400 g, 8 min</b>, RT or 4 °C.</li>
+    <li>Aspirate supernatant carefully to remove DMSO. Resuspend gently in 1 mL complete medium, then add 9 mL complete medium.</li>
+    <li>Rest 10 mL PBMC (2 M/mL): <b>1 h at 37 °C, 5% CO₂.</b> Then wash into cold binding buffer before panning.
+      <ul>
+        <li><i>(option)</i> Add <b>DNase I 25 µg/mL</b></li>
+        <li><b>Overnight culture at 1–2 M/mL, 37 °C</b> is fine if cells must carry to the next day</li>
+        <li>Double-frozen PBMC lose 30–50% viability and dead cells drive nonspecific capture — freeze protocol in §4</li>
+      </ul></li>
+    <li>Count viable cells by diluting ×5. Check viability with trypan blue.
+      <ul>
+        <li>Trypan blue: 10 µL cell suspension + 10 µL 0.4% trypan blue</li>
+        <li>Usually above 90%. <b>Record viability each time.</b> Illumina wants <b>&gt;80%</b></li>
+        <li>Strain 40 µm before counting if any clumps are visible</li>
+      </ul></li>
+    <li>Take 10 × 10⁶ PBMC, <b>wash twice</b>, resuspend at approximately 10 × 10⁶ PBMC/mL.
+      <ul>
+        <li>Washing twice is crucial to the Sulfo-NHS-biotin reaction — serum amines quench the ester on contact</li>
+        <li>Wash into <b>PBS pH 8.0</b>, not binding buffer (no BSA at this step)</li>
+      </ul></li>
+    <li>Dissolve 1 mg Sulfo-NHS-biotin in <b>1 mL PBS pH 8.0</b>. Mix 1 mL reagent + 1 mL of the 10 M PBMC suspension.
+      <ul>
+        <li>Arithmetic: 1 mg / 2 mL = <b>0.5 mg/mL final</b>, matching ~5 mL of 0.5 mg/mL per 2.5 × 10⁷ cells. <b>One tube = one 10 M reaction.</b></li>
+        <li>Cell density during the reaction is <b>5 × 10⁶/mL</b>, not 10⁷ — the equal volume of reagent halves it. That is the vendor condition. For 10⁷/mL during labeling, resuspend at 2 × 10⁷/mL in Step 10</li>
+      </ul></li>
+    <li>Incubate <b>30 min, 4 °C</b>, gentle rotation. Quench 5 min at 4 °C, then wash <b>3–4 times</b> with cold binding buffer.
+      <ul>
+        <li>3 washes minimum — residual free biotin binds streptavidin tighter than anything else and consumes bead capacity before the beads reach a cell</li>
+        <li>Recount here and compare to Step 9</li>
+      </ul></li>
+    <li>Add pre-cleared yeast library to <b>biotinylated target PBMC</b>. Incubate <b>1 h, 4 °C</b>, gentle rotation.
+      <ul>
+        <li><i>(option)</i> Fc block 10–15 min at 4 °C before adding library</li>
+        <li>Record the yeast:PBMC ratio</li>
+      </ul></li>
+    <li>Add <b>Dynabeads MyOne Streptavidin T1 (#65601)</b> to the PBMC–library mixture.
+      <ul>
+        <li>10/5/26: tried 10 µL for 1 million — too much beads</li>
+        <li>10 mg/mL ≈ 7–12 × 10⁹ beads/mL, so 10 µL = <b>70–120 beads per PBMC</b>. Target 5–10 beads/cell → <b>~1 µL per 10⁶ cells</b></li>
+        <li>For 10 × 10⁶ cells: ~10 µL. Below that, dilute stock 1:10 and take 10 µL of the dilution</li>
+      </ul></li>
+    <li>Incubate <b>15 min, 4 °C</b>.</li>
+    <li>Apply to magnetic capture. Wait 5 min, remove supernatant, add CSB with the tube on the stand to wash.
+      <ul><li>Keep the supernatant as the unbound fraction until capture is confirmed</li></ul></li>
+    <li>Add 1 mL CSB, count with hemocytometer. Prepare <b>5,700 complexes/µL (or 5.7 million/mL)</b> and add <b>3 µL</b> to PIP.
+      <ul>
+        <li>Count complexes (although claude suggest count bodies)</li>
+        <li>Strain 40 µm before diluting and then count</li>
+      </ul></li>
+  </ol>
+
+  <details class="figbox">
+    <summary>Figure — magnetic capture setup (placeholder)</summary>
+    <figure class="figure">
+      <img src="img/magnet-capture.png" alt="Tube on magnetic stand with bead pellet on the wall"
+           loading="lazy" decoding="async">
+      <figcaption>Replace <code>img/magnet-capture.png</code> with your own photo. Copy this
+        <code>&lt;details class="figbox"&gt;</code> block to add more.</figcaption>
+    </figure>
+  </details>
+</section>
+
+<!-- ============ LAB NOTE ============ -->
+<section class="card" id="labnote">
+  <h2><span class="n">3</span>Lab note</h2>
+  <p class="lede">Fill in during the run. <b>Save run</b> appends it to the index below and keeps it in this browser.
+    Export CSV for a spreadsheet, or copy a Markdown block straight into <code>PBMC.md</code>.</p>
+  <div class="storewarn" id="storewarn">Browser storage is unavailable here, so entries won’t persist after you close
+    the page. Everything else works — use <b>Copy Markdown</b> or <b>Export CSV</b> before leaving.</div>
+
+  <form id="ln" onsubmit="return false">
+    <fieldset><legend>Cells</legend><div class="grid">
+      <div><label>Date</label><input type="date" name="date"></div>
+      <div><label>PBMC lot</label><input type="text" name="pbmcLot" placeholder="8260214C"></div>
+      <div><label>Thaw viability (%)</label><input type="number" name="thawViab" step="0.1" placeholder="96"></div>
+      <div><label>Total cells (×10⁶)</label><input type="number" name="totalCells" step="0.1"></div>
+      <div><label>DNase added?</label><select name="dnase"><option value=""></option><option>No</option><option>Yes</option></select></div>
+      <div><label>Cells taken for labeling (×10⁶)</label><input type="number" name="cellsLabeled" step="0.1" placeholder="10"></div>
+    </div></fieldset>
+
+    <fieldset><legend>Panning</legend><div class="grid">
+      <div><label>Yeast library round</label><input type="text" name="yeastRound" placeholder="4"></div>
+      <div><label>Induction date</label><input type="date" name="inductionDate"></div>
+      <div><label>Yeast : PBMC ratio</label><input type="text" name="ratio" placeholder="10:1"></div>
+    </div></fieldset>
+
+    <fieldset><legend>PIP load</legend><div class="grid">
+      <div><label>Complexes (counts/µL)</label><input type="number" name="complexPerUl" step="0.1" placeholder="5700"></div>
+      <div><label>PBMC load volume to PIP(µL)</label><input type="number" name="bodiesPerUl" step="0.1" placeholder="3"></div>
+      <div><label>Viability at load (%)</label><input type="text" name="loadViab" placeholder="very high"></div>
+      <div><label>PIP tube ID</label><input type="text" name="pipTube"></div>
+      <div><label>Index mix</label><input type="text" name="indexMix"></div>
+      <div><label>Time from sample prep to load into PIP (min)</label><input type="text" name="magnetToLoad"></div>
+    </div></fieldset>
+
+    <fieldset><legend>Deviations / observations</legend>
+      <textarea name="notes" placeholder="Anything that differed from the protocol, and anything surprising."></textarea>
+    </fieldset>
+  </form>
+
+  <div class="lnbtns">
+    <button onclick="saveRun()">Save run</button>
+    <button class="ghost" onclick="copyMd()">Copy Markdown</button>
+    <button class="ghost" onclick="exportCsv()">Export CSV</button>
+    <button class="ghost" onclick="clearForm()">Clear form</button>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <h3>Run index</h3>
+  <div id="runsWrap"><p class="empty">No runs saved yet.</p></div>
+</section>
+
+<!-- ============ WHY RECORD ============ -->
+<section class="card">
+  <h2><span class="n">4</span>Why each parameter matters</h2>
+  <table>
+    <thead><tr><th>Parameter</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td><b>PBMC lot</b></td><td>Donor variation in monocyte fraction and HLA type changes background binding. Non-negotiable for comparing rounds</td></tr>
+      <tr><td><b>Thaw viability</b></td><td>Below 80% the dead-cell fraction dominates nonspecific bead capture</td></tr>
+      <tr><td><b>Dissolve → add gap</b></td><td>Sulfo-NHS-biotin hydrolyzes in minutes. A long gap is the most likely silent cause of weak capture</td></tr>
+      <tr><td><b>Wash count</b></td><td>Free biotin poisons bead capacity</td></tr>
+      <tr><td><b>Yeast:PBMC + yeast per complex</b></td><td>Claude think I shoudl convert complexes to bodies and then count bodies instead of counting complexes</td></tr>
+      <tr><td><b>Magnet labeling → sample load time</b></td><td>Affinity-held complexes loosen; a long gap confounds low capture with dissociation</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ FREEZING ============ -->
+<section class="card">
+  <h2><span class="n">5</span>Appendix — freezing leftover PBMC</h2>
+  <div class="warn"> If you can not use PBMC immediately, <b>overnight culture at 1–2 × 10⁶/mL, 37 °C, 5% CO₂</b> in a vented flask if you need cells
+    within 24 h. Re-freezing costs another 30–50% viability, biased against monocytes and NK cells.</div>
+  <p class="lede">Only freeze from cells <b>≥85% viable</b>.</p>
+  <ol class="steps">
+    <li>Wash once in complete medium; count and record viability.</li>
+    <li>Spin 300–400 g, 8 min. Remove supernatant <b>completely</b> — residual medium dilutes the cryoprotectant.</li>
+    <li>Resuspend in <b>cold FBS</b> at <b>2× final density</b>.</li>
+    <li>Prepare <b>20% DMSO in FBS</b>, ice cold.</li>
+    <li><b>Add the DMSO/FBS dropwise to an equal volume of cells over ~1 min, swirling.</b> Bolus addition is the main
+      cause of poor recovery. Final: 90% FBS / 10% DMSO.</li>
+    <li><b>2–5 × 10⁶ per vial</b> — sparser than a first freeze; sparse vials thaw better.</li>
+    <li>Aliquot on ice. Total DMSO exposure before freezing <b>&lt;10–15 min</b>.</li>
+    <li><b>−1 °C/min</b> (CoolCell / Mr. Frosty) at −80 °C for 12–24 h.</li>
+    <li><b>Move to LN₂ vapor within 24–72 h.</b> PBMC degrade at −80 °C over weeks.</li>
+    <li>Label vials <b>double-frozen</b> so a later run doesn’t mix them with first-thaw cells.</li>
+  </ol>
+  <div class="note">CryoStor CS10 replaces steps 3–5 and removes the dropwise step.</div>
+</section>
+
+<footer>PBMC prep · companion to <code>PBMC.md</code> · last revised 2026-10-14</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY_RUNS="pbmcPrep.runs.v1", KEY_DRAFT="pbmcPrep.draft.v1", KEY_CHK="pbmcPrep.checks.v1";
+  var FIELDS=["date","pbmcLot","thawViab","totalCells","dnase","cellsLabeled",
+    "yeastRound","inductionDate","ratio",
+    "complexPerUl","bodiesPerUl","loadViab","pipTube","indexMix","magnetToLoad","notes"];
+  var LABELS={date:"Date",pbmcLot:"PBMC lot",thawViab:"Thaw viability %",totalCells:"Total cells ×10⁶",
+    dnase:"DNase added",cellsLabeled:"Cells taken for labeling ×10⁶",
+    yeastRound:"Yeast library round",inductionDate:"Induction date",ratio:"Yeast:PBMC ratio",
+    complexPerUl:"Complexes counts/µL",bodiesPerUl:"PBMC load volume to PIP µL",
+    loadViab:"Viability at load",pipTube:"PIP tube ID",indexMix:"Index mix",
+    magnetToLoad:"Time from sample prep to PIP load (min)",notes:"Notes"};
+  var form=document.getElementById("ln"), storageOK=true;
+
+  function ls(op,k,v){
+    try{
+      if(op==="get")return localStorage.getItem(k);
+      if(op==="set")localStorage.setItem(k,v);
+      if(op==="del")localStorage.removeItem(k);
+    }catch(e){
+      if(storageOK){storageOK=false;document.getElementById("storewarn").style.display="block";}
+      return null;
+    }
+  }
+  function toast(msg,ok){
+    var t=document.getElementById("toast");
+    t.textContent=msg; t.style.display="block";
+    t.style.background=ok===false?"#fbeae9":"#e2f3ea";
+    t.style.color=ok===false?"#b3322c":"#1a7d54";
+    t.style.borderColor=ok===false?"#e7bab7":"#bfe3d1";
+    clearTimeout(toast._t); toast._t=setTimeout(function(){t.style.display="none";},3200);
+  }
+  function read(){var o={};FIELDS.forEach(function(f){var el=form.elements[f];o[f]=el?el.value.trim():"";});return o;}
+  function write(o){FIELDS.forEach(function(f){var el=form.elements[f];if(el)el.value=o[f]||"";});}
+  function getRuns(){try{return JSON.parse(ls("get",KEY_RUNS)||"[]");}catch(e){return [];}}
+  function setRuns(r){ls("set",KEY_RUNS,JSON.stringify(r));}
+
+  // ---- step checkboxes ----
+  var items=document.querySelectorAll("#steps > li");
+  var checks={}; try{checks=JSON.parse(ls("get",KEY_CHK)||"{}");}catch(e){checks={};}
+  Array.prototype.forEach.call(items,function(li,i){
+    var cb=document.createElement("input");
+    cb.type="checkbox"; cb.className="chk"; cb.setAttribute("aria-label","Step "+(i+1)+" done");
+    cb.checked=!!checks[i]; if(cb.checked)li.classList.add("done");
+    cb.addEventListener("change",function(){
+      li.classList.toggle("done",cb.checked);
+      checks[i]=cb.checked; ls("set",KEY_CHK,JSON.stringify(checks));
+    });
+    li.appendChild(cb);
+  });
+
+  // ---- draft autosave ----
+  try{var d=JSON.parse(ls("get",KEY_DRAFT)||"null"); if(d)write(d);}catch(e){}
+  if(!form.elements.date.value)form.elements.date.value=new Date().toISOString().slice(0,10);
+  form.addEventListener("input",function(){ls("set",KEY_DRAFT,JSON.stringify(read()));});
+
+  // ---- run index ----
+  function renderRuns(){
+    var runs=getRuns(), wrap=document.getElementById("runsWrap");
+    if(!runs.length){wrap.innerHTML='<p class="empty">No runs saved yet.</p>';return;}
+    var cols=[["date","Date"],["pbmcLot","PBMC lot"],["thawViab","Thaw %"],
+              ["cellsLabeled","Cells ×10⁶"],["ratio","Yeast:PBMC"],
+              ["complexPerUl","Cplx/µL"],["bodiesPerUl","Load µL"]];
+    var h='<table><thead><tr>'+cols.map(function(c){return "<th>"+c[1]+"</th>";}).join("")+
+          '<th>Notes</th><th></th></tr></thead><tbody>';
+    runs.forEach(function(r,i){
+      h+="<tr>"+cols.map(function(c){return "<td>"+(r[c[0]]||"—")+"</td>";}).join("")+
+         "<td>"+(r.notes?r.notes.slice(0,60)+(r.notes.length>60?"…":""):"—")+"</td>"+
+         '<td><button class="mini" data-i="'+i+'">delete</button></td></tr>';
+    });
+    wrap.innerHTML=h+"</tbody></table>";
+    wrap.querySelectorAll("button.mini").forEach(function(b){
+      b.addEventListener("click",function(){
+        var runs=getRuns(); runs.splice(+b.dataset.i,1); setRuns(runs); renderRuns(); toast("Run deleted.");
+      });
+    });
+  }
+  renderRuns();
+
+  window.saveRun=function(){
+    var o=read();
+    if(!o.date&&!o.pbmcLot){toast("Add at least a date or a PBMC lot first.",false);return;}
+    var runs=getRuns(); runs.push(o); setRuns(runs); renderRuns();
+    toast(storageOK?"Run saved to the index.":"Run added to this page — export it before closing.",storageOK);
+  };
+  window.clearForm=function(){
+    write({}); ls("del",KEY_DRAFT);
+    form.elements.date.value=new Date().toISOString().slice(0,10);
+    toast("Form cleared.");
+  };
+  window.copyMd=function(){
+    var o=read(), L=[];
+    L.push("### Run "+(o.date||"YYYY-MM-DD"),"");
+    L.push("**Cells**");
+    ["pbmcLot","thawViab","totalCells","dnase","cellsLabeled"]
+      .forEach(function(f){L.push("- "+LABELS[f]+": "+(o[f]||""));});
+    L.push("","**Panning**");
+    ["yeastRound","inductionDate","ratio"]
+      .forEach(function(f){L.push("- "+LABELS[f]+": "+(o[f]||""));});
+    L.push("","**PIP load**");
+    ["complexPerUl","bodiesPerUl","loadViab","pipTube","indexMix","magnetToLoad"]
+      .forEach(function(f){L.push("- "+LABELS[f]+": "+(o[f]||""));});
+    L.push("","**Deviations / observations**","",o.notes||"");
+    var txt=L.join("\n");
+    function fallback(){
+      var ta=document.createElement("textarea"); ta.value=txt;
+      ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta);
+      ta.select(); try{document.execCommand("copy");toast("Markdown block copied.");}
+      catch(e){toast("Couldn't copy — select the text manually.",false);}
+      document.body.removeChild(ta);
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast("Markdown block copied.");},fallback);
+    } else fallback();
+  };
+  window.exportCsv=function(){
+    var runs=getRuns(), cur=read(), rows=runs.slice();
+    if(FIELDS.some(function(f){return cur[f];}))rows.push(cur);
+    if(!rows.length){toast("Nothing to export yet.",false);return;}
+    function q(v){v=(v==null?"":String(v));return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+    var csv=FIELDS.map(function(f){return q(LABELS[f]);}).join(",")+"\n"+
+      rows.map(function(r){return FIELDS.map(function(f){return q(r[f]);}).join(",");}).join("\n");
+    var blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="pbmc_prep_runs_"+new Date().toISOString().slice(0,10)+".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+    toast("CSV downloaded ("+rows.length+" run"+(rows.length>1?"s":"")+").");
+  };
+  addEventListener("beforeprint",function(){
+    document.querySelectorAll("details.figbox").forEach(function(d){d.open=true;});
+  });
+})();
+</script>
+</body>
+</html>
